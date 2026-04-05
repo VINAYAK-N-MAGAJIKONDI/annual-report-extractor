@@ -53,6 +53,7 @@ def extract_footnotes(
     current_note_num: str = ""
     current_note_title: str = ""
     current_note_content: list[str] = []
+    current_note_start_page: int = 0
 
     with pdfplumber.open(pdf_path) as pdf:
         for page_num in footnote_pages:
@@ -91,13 +92,14 @@ def extract_footnotes(
                                 "Note_Number": current_note_num,
                                 "Note_Title": current_note_title,
                                 "Content": "\n".join(current_note_content).strip(),
-                                "Source_Page": str(page_num),
+                                "Source_Page": str(current_note_start_page),
                             }
                         )
 
                     current_note_num = note_match.group(1)
                     current_note_title = note_match.group(2).strip()
                     current_note_content = []
+                    current_note_start_page = page_num
                 else:
                     # Check for sub-note patterns like "2.1", "3a", etc.
                     sub_note_match = re.match(r"^(\d{1,2}\.\d{1,2})\s+(.+)", line)
@@ -113,7 +115,7 @@ def extract_footnotes(
                 "Note_Number": current_note_num,
                 "Note_Title": current_note_title,
                 "Content": "\n".join(current_note_content).strip(),
-                "Source_Page": str(footnote_pages[-1]),
+                "Source_Page": str(current_note_start_page),
             }
         )
 
@@ -158,7 +160,7 @@ def extract_footnotes_for_statement(
     Filter footnotes to only those referenced by a specific statement.
     """
     if footnotes_df.empty or not note_numbers:
-        return footnotes_df
+        return pd.DataFrame()
 
     note_strs = [str(n) for n in note_numbers]
     filtered = footnotes_df[footnotes_df["Note_Number"].isin(note_strs)]
